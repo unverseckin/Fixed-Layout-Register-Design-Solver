@@ -39,7 +39,6 @@ precomputed from the known site coordinates.
 pip install -r requirements.txt
 ```
 
-
 ## Running the demo
 
 ```bash
@@ -51,6 +50,28 @@ with given number of restarts, and prints a full quality report including per-pa
 breakdown and convergence history.
 
 ---
+
+## Web application
+
+The project includes an interactive web interface built with Flask.
+
+### Running the web app
+
+```bash
+python app.py
+```
+
+Open `http://localhost:8000` in your browser.
+
+### API endpoints
+
+| Endpoint | Method | Description |
+|---|---|---|
+| `/` | GET | Serve the single-page frontend |
+| `/api/generate-sites` | POST | Generate candidate sites on a triangular lattice |
+| `/api/generate-q` | POST | Generate a random symmetric target matrix |
+| `/api/solve` | POST | Run the full solver and return solution, convergence history, and error report |
+
 
 ## License
 

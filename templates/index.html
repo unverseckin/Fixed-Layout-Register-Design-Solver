@@ -1,0 +1,920 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Register Design Solver</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root {
+  --bg-primary: #0a0e1a;
+  --bg-card: #111827;
+  --bg-input: #1f2937;
+  --border: #374151;
+  --accent: #6366f1;
+  --accent-hover: #818cf8;
+  --accent-glow: rgba(99,102,241,0.3);
+  --text: #e5e7eb;
+  --text-muted: #9ca3af;
+  --text-bright: #f9fafb;
+  --success: #34d399;
+  --warning: #fbbf24;
+  --error: #f87171;
+  --site-color: rgba(99,102,241,0.35);
+  --atom-color: #6366f1;
+  --atom-glow: rgba(99,102,241,0.6);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  background: var(--bg-primary);
+  color: var(--text);
+  min-height: 100vh;
+}
+
+/* Header */
+.header {
+  background: linear-gradient(135deg, #111827 0%, #1e1b4b 100%);
+  border-bottom: 1px solid var(--border);
+  padding: 1.25rem 2rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+.header-icon {
+  width: 40px; height: 40px;
+  background: var(--accent);
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.2rem;
+  box-shadow: 0 0 20px var(--accent-glow);
+}
+.header h1 {
+  font-size: 1.35rem;
+  font-weight: 600;
+  color: var(--text-bright);
+  letter-spacing: -0.02em;
+}
+.header p {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+/* Layout */
+.container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 1.5rem;
+  display: grid;
+  grid-template-columns: 380px 1fr;
+  gap: 1.5rem;
+}
+
+@media (max-width: 960px) {
+  .container { grid-template-columns: 1fr; }
+}
+
+/* Cards */
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1.25rem;
+}
+.card h2 {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-bright);
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.card h2 .badge {
+  font-size: 0.65rem;
+  background: var(--accent);
+  color: #fff;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-weight: 500;
+}
+
+/* Form elements */
+.field {
+  margin-bottom: 0.9rem;
+}
+.field label {
+  display: block;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+  font-weight: 500;
+}
+.field input, .field select {
+  width: 100%;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 12px;
+  color: var(--text);
+  font-size: 0.85rem;
+  outline: none;
+  transition: border-color 0.2s;
+}
+.field input:focus, .field select:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-glow);
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+.row-3 {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 0.75rem;
+}
+
+/* Buttons */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.btn-primary {
+  background: var(--accent);
+  color: #fff;
+  box-shadow: 0 0 20px var(--accent-glow);
+}
+.btn-primary:hover { background: var(--accent-hover); }
+.btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.btn-secondary {
+  background: var(--bg-input);
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+.btn-secondary:hover { border-color: var(--accent); }
+.btn-sm {
+  padding: 6px 14px;
+  font-size: 0.78rem;
+}
+.btn-block { width: 100%; }
+
+/* Q Matrix */
+.q-matrix-wrap {
+  overflow: auto;
+  max-height: 280px;
+  margin-top: 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.q-matrix-wrap table {
+  border-collapse: collapse;
+  width: 100%;
+}
+.q-matrix-wrap th {
+  background: var(--bg-input);
+  color: var(--text-muted);
+  font-size: 0.7rem;
+  padding: 4px 6px;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+.q-matrix-wrap td {
+  padding: 2px;
+}
+.q-matrix-wrap input {
+  width: 72px;
+  background: var(--bg-primary);
+  border: 1px solid transparent;
+  border-radius: 4px;
+  padding: 4px 6px;
+  color: var(--text);
+  font-size: 0.78rem;
+  text-align: center;
+}
+.q-matrix-wrap input:focus {
+  border-color: var(--accent);
+}
+
+/* Right panel */
+.right-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* Viz canvas */
+.viz-container {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1;
+  max-height: 500px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.viz-container canvas {
+  width: 100%;
+  height: 100%;
+}
+
+/* Summary stats */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 0.75rem;
+}
+.stat-box {
+  background: var(--bg-input);
+  border-radius: 8px;
+  padding: 0.75rem;
+  text-align: center;
+}
+.stat-box .val {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--accent);
+}
+.stat-box .lbl {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+/* Pairs table */
+.pairs-table-wrap {
+  overflow: auto;
+  max-height: 260px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.pairs-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8rem;
+}
+.pairs-table th {
+  background: var(--bg-input);
+  color: var(--text-muted);
+  padding: 8px 10px;
+  text-align: left;
+  font-weight: 600;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  position: sticky;
+  top: 0;
+}
+.pairs-table td {
+  padding: 6px 10px;
+  border-top: 1px solid var(--border);
+}
+.pairs-table tr:hover td { background: rgba(99,102,241,0.05); }
+
+/* Convergence chart */
+.chart-container {
+  position: relative;
+  height: 220px;
+}
+
+/* Status / loading */
+.status-bar {
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  margin-top: 0.5rem;
+  display: none;
+}
+.status-bar.info { display: block; background: rgba(99,102,241,0.15); color: var(--accent); }
+.status-bar.success { display: block; background: rgba(52,211,153,0.15); color: var(--success); }
+.status-bar.error { display: block; background: rgba(248,113,113,0.15); color: var(--error); }
+
+.spinner {
+  display: inline-block;
+  width: 14px; height: 14px;
+  border: 2px solid var(--accent-glow);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin-right: 6px;
+  vertical-align: middle;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Separator */
+.sep {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 0.75rem 0;
+}
+
+/* Tooltip canvas */
+.canvas-tooltip {
+  position: absolute;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 0.75rem;
+  pointer-events: none;
+  display: none;
+  z-index: 10;
+  white-space: nowrap;
+}
+
+/* Hide sections until results */
+.results-section { display: none; }
+.results-section.visible { display: block; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-icon">&#9883;</div>
+  <div>
+    <h1>Neutral-Atom Register Design Solver</h1>
+    <p>Fixed-layout assignment &mdash; GRASP + 2-opt heuristic &mdash; U<sub>ij</sub> = C<sub>6</sub> / r<sub>ij</sub><sup>6</sup></p>
+  </div>
+</div>
+
+<div class="container">
+  <!-- LEFT PANEL: INPUTS -->
+  <div class="left-panel">
+
+    <!-- Hardware Constraints -->
+    <div class="card">
+      <h2>&#9881; Hardware Constraints</h2>
+      <div class="field">
+        <label>C<sub>6</sub> constant</label>
+        <input type="number" id="c6" value="862690" step="any">
+      </div>
+      <div class="row">
+        <div class="field">
+          <label>R<sub>min</sub> (&mu;m)</label>
+          <input type="number" id="r_min" value="5.0" step="0.1" min="0.1">
+        </div>
+        <div class="field">
+          <label>R<sub>max</sub> (&mu;m)</label>
+          <input type="number" id="r_max" value="35.0" step="0.5" min="1">
+        </div>
+      </div>
+    </div>
+
+    <!-- Site Generation -->
+    <div class="card">
+      <h2>&#9651; Site Lattice <span class="badge">triangular</span></h2>
+      <div class="field">
+        <label>Lattice spacing (&mu;m)</label>
+        <input type="number" id="spacing" value="10.0" step="0.5" min="1">
+      </div>
+      <div style="display:flex;gap:0.5rem;">
+        <button class="btn btn-secondary btn-sm" onclick="generateSites()">Generate Sites</button>
+        <span id="site-count" style="font-size:0.8rem;color:var(--text-muted);line-height:2.2;"></span>
+      </div>
+    </div>
+
+    <!-- Q Matrix -->
+    <div class="card">
+      <h2>Q Target Matrix</h2>
+      <div class="row" style="margin-bottom:0.6rem;">
+        <div class="field" style="margin-bottom:0;">
+          <label>Number of items (n)</label>
+          <input type="number" id="n_items" value="6" min="2" max="20">
+        </div>
+        <div class="field" style="margin-bottom:0;">
+          <label>Random seed</label>
+          <input type="number" id="q_seed" value="42">
+        </div>
+      </div>
+      <div class="row" style="margin-bottom:0.6rem;">
+        <div class="field" style="margin-bottom:0;">
+          <label>Q<sub>min</sub></label>
+          <input type="number" id="q_min" value="0.5" step="0.1">
+        </div>
+        <div class="field" style="margin-bottom:0;">
+          <label>Q<sub>max</sub></label>
+          <input type="number" id="q_max" value="50.0" step="1">
+        </div>
+      </div>
+      <button class="btn btn-secondary btn-sm" onclick="generateQ()" style="margin-bottom:0.5rem;">Generate Random Q</button>
+      <div id="q-matrix-container"></div>
+    </div>
+
+    <!-- Solver Parameters -->
+    <div class="card">
+      <h2>&#9881; Solver Parameters</h2>
+      <div class="row">
+        <div class="field">
+          <label>&alpha; (GRASP diversity)</label>
+          <input type="number" id="alpha" value="0.3" step="0.05" min="0" max="1">
+        </div>
+        <div class="field">
+          <label>Restarts</label>
+          <input type="number" id="num_restarts" value="20" min="1" max="200">
+        </div>
+      </div>
+      <div class="row">
+        <div class="field">
+          <label>Max 2-opt passes</label>
+          <input type="number" id="max_passes" value="200" min="1">
+        </div>
+        <div class="field">
+          <label>Solver seed</label>
+          <input type="number" id="solver_seed" value="42">
+        </div>
+      </div>
+    </div>
+
+    <!-- Solve Button -->
+    <button class="btn btn-primary btn-block" id="solve-btn" onclick="solve()">
+      &#9889; Solve Register Design
+    </button>
+    <div id="status" class="status-bar"></div>
+
+  </div>
+
+  <!-- RIGHT PANEL: RESULTS -->
+  <div class="right-panel">
+
+    <!-- Register Visualization -->
+    <div class="card">
+      <h2>&#127758; Register Layout</h2>
+      <div class="viz-container" id="viz-container">
+        <canvas id="registerCanvas"></canvas>
+        <div class="canvas-tooltip" id="canvas-tooltip"></div>
+      </div>
+    </div>
+
+    <!-- Summary Stats (hidden until results) -->
+    <div class="card results-section" id="stats-section">
+      <h2>&#128202; Solution Summary</h2>
+      <div class="stats-grid" id="stats-grid"></div>
+    </div>
+
+    <!-- Convergence Chart -->
+    <div class="card results-section" id="convergence-section">
+      <h2>&#128200; Convergence History</h2>
+      <div class="chart-container">
+        <canvas id="convergenceChart"></canvas>
+      </div>
+    </div>
+
+    <!-- Pair-wise Report -->
+    <div class="card results-section" id="pairs-section">
+      <h2>&#128269; Pair-wise Error Report</h2>
+      <div class="pairs-table-wrap" id="pairs-table-wrap"></div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// ---------------------------------------------------------------------------
+// State
+// ---------------------------------------------------------------------------
+let currentSites = [];
+let currentQ = null;
+let solveResult = null;
+let convergenceChart = null;
+
+// ---------------------------------------------------------------------------
+// Site generation
+// ---------------------------------------------------------------------------
+async function generateSites() {
+  const r_max = +document.getElementById('r_max').value;
+  const spacing = +document.getElementById('spacing').value;
+  const r_min = +document.getElementById('r_min').value;
+
+  const resp = await fetch('/api/generate-sites', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({r_max, spacing, r_min}),
+  });
+  const data = await resp.json();
+  if (data.error) { alert(data.error); return; }
+
+  currentSites = data.sites;
+  document.getElementById('site-count').textContent = `${data.count} sites generated`;
+  drawRegister(currentSites, []);
+}
+
+// ---------------------------------------------------------------------------
+// Q Matrix generation & rendering
+// ---------------------------------------------------------------------------
+async function generateQ() {
+  const n = +document.getElementById('n_items').value;
+  const q_min = +document.getElementById('q_min').value;
+  const q_max = +document.getElementById('q_max').value;
+  const seed = +document.getElementById('q_seed').value;
+
+  const resp = await fetch('/api/generate-q', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({n, q_min, q_max, seed}),
+  });
+  const data = await resp.json();
+  if (data.error) { alert(data.error); return; }
+
+  currentQ = data.matrix;
+  renderQMatrix(currentQ);
+}
+
+function renderQMatrix(Q) {
+  const n = Q.length;
+  let html = '<div class="q-matrix-wrap"><table><tr><th></th>';
+  for (let j = 0; j < n; j++) html += `<th>${j}</th>`;
+  html += '</tr>';
+  for (let i = 0; i < n; i++) {
+    html += `<tr><th>${i}</th>`;
+    for (let j = 0; j < n; j++) {
+      html += `<td><input type="number" step="any" value="${Q[i][j].toFixed(2)}"
+          data-i="${i}" data-j="${j}" onchange="qCellChanged(this)"></td>`;
+    }
+    html += '</tr>';
+  }
+  html += '</table></div>';
+  document.getElementById('q-matrix-container').innerHTML = html;
+}
+
+function qCellChanged(el) {
+  const i = +el.dataset.i, j = +el.dataset.j, v = +el.value;
+  currentQ[i][j] = v;
+  currentQ[j][i] = v;
+  // Update the symmetric cell
+  const mirror = document.querySelector(
+    `.q-matrix-wrap input[data-i="${j}"][data-j="${i}"]`);
+  if (mirror) mirror.value = v.toFixed(2);
+}
+
+function readQFromUI() {
+  if (!currentQ) return null;
+  const n = currentQ.length;
+  const inputs = document.querySelectorAll('.q-matrix-wrap input[data-i]');
+  inputs.forEach(el => {
+    const i = +el.dataset.i, j = +el.dataset.j;
+    currentQ[i][j] = +el.value;
+  });
+  // Enforce symmetry
+  for (let i = 0; i < n; i++)
+    for (let j = i + 1; j < n; j++) {
+      const avg = (currentQ[i][j] + currentQ[j][i]) / 2;
+      currentQ[i][j] = avg;
+      currentQ[j][i] = avg;
+    }
+  return currentQ;
+}
+
+// ---------------------------------------------------------------------------
+// Solve
+// ---------------------------------------------------------------------------
+async function solve() {
+  const Q = readQFromUI();
+  if (!Q) { setStatus('Generate a Q matrix first.', 'error'); return; }
+  if (currentSites.length === 0) {
+    setStatus('Generate sites first.', 'error'); return;
+  }
+
+  const btn = document.getElementById('solve-btn');
+  btn.disabled = true;
+  setStatus('<span class="spinner"></span> Solving... this may take a moment.', 'info');
+
+  const payload = {
+    c6: +document.getElementById('c6').value,
+    r_min: +document.getElementById('r_min').value,
+    r_max: +document.getElementById('r_max').value,
+    sites: currentSites,
+    q_matrix: Q,
+    alpha: +document.getElementById('alpha').value,
+    num_restarts: +document.getElementById('num_restarts').value,
+    max_passes: +document.getElementById('max_passes').value,
+    seed: +document.getElementById('solver_seed').value,
+  };
+
+  try {
+    const resp = await fetch('/api/solve', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify(payload),
+    });
+    const data = await resp.json();
+    if (data.error) {
+      setStatus(data.error, 'error');
+      btn.disabled = false;
+      return;
+    }
+
+    solveResult = data;
+    setStatus(`Solved in ${data.summary.time_seconds}s — ` +
+              `cost = ${data.summary.total_cost.toExponential(4)}`, 'success');
+
+    // Show result sections
+    document.querySelectorAll('.results-section').forEach(
+      el => el.classList.add('visible'));
+
+    drawRegister(data.all_sites, data.assigned_items);
+    renderStats(data.summary);
+    renderConvergence(data.convergence);
+    renderPairsTable(data.pairs);
+
+  } catch (e) {
+    setStatus('Network or server error: ' + e.message, 'error');
+  }
+  btn.disabled = false;
+}
+
+function setStatus(msg, type) {
+  const el = document.getElementById('status');
+  el.innerHTML = msg;
+  el.className = 'status-bar ' + type;
+}
+
+// ---------------------------------------------------------------------------
+// Register visualization (Canvas)
+// ---------------------------------------------------------------------------
+function drawRegister(sites, assignedItems) {
+  const container = document.getElementById('viz-container');
+  const canvas = document.getElementById('registerCanvas');
+  const dpr = window.devicePixelRatio || 1;
+  const w = container.clientWidth;
+  const h = container.clientHeight || w;
+  canvas.width = w * dpr;
+  canvas.height = h * dpr;
+  canvas.style.width = w + 'px';
+  canvas.style.height = h + 'px';
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+  ctx.clearRect(0, 0, w, h);
+
+  if (sites.length === 0) {
+    ctx.fillStyle = '#6b7280';
+    ctx.font = '14px system-ui';
+    ctx.textAlign = 'center';
+    ctx.fillText('Generate sites to preview the layout', w/2, h/2);
+    return;
+  }
+
+  const r_max = +document.getElementById('r_max').value;
+  const padding = 40;
+  const plotSize = Math.min(w, h) - 2 * padding;
+  const scale = plotSize / (2 * r_max);
+  const cx = w / 2, cy = h / 2;
+
+  function toScreen(x, y) {
+    return [cx + x * scale, cy - y * scale];
+  }
+
+  // Draw R_max boundary circle
+  ctx.beginPath();
+  ctx.arc(cx, cy, r_max * scale, 0, 2 * Math.PI);
+  ctx.strokeStyle = 'rgba(99,102,241,0.2)';
+  ctx.lineWidth = 1.5;
+  ctx.setLineDash([6, 4]);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Draw grid lines
+  ctx.strokeStyle = 'rgba(55,65,81,0.4)';
+  ctx.lineWidth = 0.5;
+  for (let g = -r_max; g <= r_max; g += 10) {
+    const [x1, y1] = toScreen(g, -r_max);
+    const [x2, y2] = toScreen(g, r_max);
+    ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+    const [x3, y3] = toScreen(-r_max, g);
+    const [x4, y4] = toScreen(r_max, g);
+    ctx.beginPath(); ctx.moveTo(x3, y3); ctx.lineTo(x4, y4); ctx.stroke();
+  }
+
+  // Axis labels
+  ctx.fillStyle = '#6b7280';
+  ctx.font = '10px system-ui';
+  ctx.textAlign = 'center';
+  ctx.fillText('x (μm)', cx, h - 8);
+  ctx.save();
+  ctx.translate(12, cy);
+  ctx.rotate(-Math.PI / 2);
+  ctx.fillText('y (μm)', 0, 0);
+  ctx.restore();
+
+  // Build set of used sites
+  const usedSiteIds = new Set(assignedItems.map(a => a.site_id));
+
+  // Draw interaction lines between assigned atoms
+  if (assignedItems.length > 1) {
+    for (let i = 0; i < assignedItems.length; i++) {
+      for (let j = i + 1; j < assignedItems.length; j++) {
+        const a = assignedItems[i], b = assignedItems[j];
+        const [x1, y1] = toScreen(a.x, a.y);
+        const [x2, y2] = toScreen(b.x, b.y);
+        ctx.beginPath();
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.strokeStyle = 'rgba(99,102,241,0.12)';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+      }
+    }
+  }
+
+  // Draw empty sites
+  sites.forEach(s => {
+    if (usedSiteIds.has(s.id)) return;
+    const [sx, sy] = toScreen(s.x, s.y);
+    ctx.beginPath();
+    ctx.arc(sx, sy, 4, 0, 2 * Math.PI);
+    ctx.fillStyle = 'var(--site-color)';
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(99,102,241,0.3)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+  });
+
+  // Draw assigned atoms with glow
+  assignedItems.forEach(a => {
+    const [sx, sy] = toScreen(a.x, a.y);
+
+    // Glow
+    const grad = ctx.createRadialGradient(sx, sy, 0, sx, sy, 16);
+    grad.addColorStop(0, 'rgba(99,102,241,0.5)');
+    grad.addColorStop(1, 'rgba(99,102,241,0)');
+    ctx.beginPath();
+    ctx.arc(sx, sy, 16, 0, 2 * Math.PI);
+    ctx.fillStyle = grad;
+    ctx.fill();
+
+    // Core dot
+    ctx.beginPath();
+    ctx.arc(sx, sy, 6, 0, 2 * Math.PI);
+    ctx.fillStyle = '#818cf8';
+    ctx.fill();
+    ctx.strokeStyle = '#c7d2fe';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    // Label
+    ctx.fillStyle = '#e5e7eb';
+    ctx.font = 'bold 9px system-ui';
+    ctx.textAlign = 'center';
+    ctx.fillText(`q${a.item}`, sx, sy - 12);
+  });
+
+  // Store for hover
+  canvas._sites = sites;
+  canvas._assigned = assignedItems;
+  canvas._toScreen = toScreen;
+}
+
+// Hover tooltip
+(function() {
+  const canvas = document.getElementById('registerCanvas');
+  const tooltip = document.getElementById('canvas-tooltip');
+  canvas.addEventListener('mousemove', e => {
+    if (!canvas._assigned || canvas._assigned.length === 0) {
+      tooltip.style.display = 'none';
+      return;
+    }
+    const rect = canvas.getBoundingClientRect();
+    const mx = e.clientX - rect.left;
+    const my = e.clientY - rect.top;
+    let found = null;
+    for (const a of canvas._assigned) {
+      const [sx, sy] = canvas._toScreen(a.x, a.y);
+      const dx = mx - sx, dy = my - sy;
+      if (dx * dx + dy * dy < 144) { found = a; break; }
+    }
+    if (found) {
+      tooltip.innerHTML = `<b>Item ${found.item}</b> &rarr; Site ${found.site_id}<br>` +
+                           `(${found.x.toFixed(2)}, ${found.y.toFixed(2)})`;
+      tooltip.style.display = 'block';
+      tooltip.style.left = (mx + 14) + 'px';
+      tooltip.style.top = (my - 10) + 'px';
+    } else {
+      tooltip.style.display = 'none';
+    }
+  });
+  canvas.addEventListener('mouseleave', () => { tooltip.style.display = 'none'; });
+})();
+
+// ---------------------------------------------------------------------------
+// Summary stats
+// ---------------------------------------------------------------------------
+function renderStats(s) {
+  document.getElementById('stats-grid').innerHTML = `
+    <div class="stat-box"><div class="val">${s.total_cost.toExponential(3)}</div><div class="lbl">Total Cost (SSE)</div></div>
+    <div class="stat-box"><div class="val">${s.total_absolute_error.toFixed(2)}</div><div class="lbl">Total |Error|</div></div>
+    <div class="stat-box"><div class="val">${s.mean_relative_error_pct.toFixed(1)}%</div><div class="lbl">Mean Rel. Error</div></div>
+    <div class="stat-box"><div class="val">${s.max_relative_error_pct.toFixed(1)}%</div><div class="lbl">Max Rel. Error</div></div>
+    <div class="stat-box"><div class="val">${s.time_seconds}s</div><div class="lbl">Solve Time</div></div>
+    <div class="stat-box"><div class="val">${s.restarts}</div><div class="lbl">Restarts</div></div>
+  `;
+}
+
+// ---------------------------------------------------------------------------
+// Convergence chart
+// ---------------------------------------------------------------------------
+function renderConvergence(history) {
+  const canvasEl = document.getElementById('convergenceChart');
+  if (convergenceChart) convergenceChart.destroy();
+
+  convergenceChart = new Chart(canvasEl, {
+    type: 'line',
+    data: {
+      labels: history.map((_, i) => i + 1),
+      datasets: [{
+        label: 'Best Cost',
+        data: history,
+        borderColor: '#6366f1',
+        backgroundColor: 'rgba(99,102,241,0.1)',
+        fill: true,
+        tension: 0.3,
+        pointRadius: 3,
+        pointBackgroundColor: '#818cf8',
+      }],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        x: {
+          title: { display: true, text: 'Restart', color: '#9ca3af' },
+          ticks: { color: '#9ca3af' },
+          grid: { color: 'rgba(55,65,81,0.3)' },
+        },
+        y: {
+          title: { display: true, text: 'Cost (SSE)', color: '#9ca3af' },
+          ticks: { color: '#9ca3af',
+                   callback: v => v.toExponential(1) },
+          grid: { color: 'rgba(55,65,81,0.3)' },
+        },
+      },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: ctx => `Cost: ${ctx.parsed.y.toExponential(4)}`,
+          },
+        },
+      },
+    },
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Pairs table
+// ---------------------------------------------------------------------------
+function renderPairsTable(pairs) {
+  let html = '<table class="pairs-table"><thead><tr>' +
+    '<th>Pair</th><th>Q<sub>ij</sub></th><th>U<sub>ij</sub></th>' +
+    '<th>|Error|</th><th>Rel %</th></tr></thead><tbody>';
+  for (const p of pairs) {
+    const relColor = p.rel_error_pct < 10 ? 'var(--success)' :
+                     p.rel_error_pct < 50 ? 'var(--warning)' : 'var(--error)';
+    html += `<tr>
+      <td>(${p.i}, ${p.j})</td>
+      <td>${p.target.toFixed(4)}</td>
+      <td>${p.realized.toFixed(4)}</td>
+      <td>${p.abs_error.toFixed(4)}</td>
+      <td style="color:${relColor}">${p.rel_error_pct.toFixed(1)}%</td>
+    </tr>`;
+  }
+  html += '</tbody></table>';
+  document.getElementById('pairs-table-wrap').innerHTML = html;
+}
+
+// ---------------------------------------------------------------------------
+// Init: generate sites + Q on load
+// ---------------------------------------------------------------------------
+window.addEventListener('DOMContentLoaded', () => {
+  generateSites();
+  generateQ();
+});
+
+// Resize redraw
+window.addEventListener('resize', () => {
+  if (solveResult) {
+    drawRegister(solveResult.all_sites, solveResult.assigned_items);
+  } else if (currentSites.length) {
+    drawRegister(currentSites, []);
+  }
+});
+</script>
+</body>
+</html>
